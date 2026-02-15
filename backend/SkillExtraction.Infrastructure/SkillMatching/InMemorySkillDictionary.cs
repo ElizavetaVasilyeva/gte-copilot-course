@@ -1,3 +1,4 @@
+using SkillExtraction.Application.Interfaces;
 using SkillExtraction.Domain.Entities;
 
 namespace SkillExtraction.Infrastructure.SkillMatching;
@@ -6,7 +7,7 @@ namespace SkillExtraction.Infrastructure.SkillMatching;
 /// In-memory skill dictionary provider.
 /// Contains predefined skills with aliases for matching.
 /// </summary>
-public class InMemorySkillDictionary
+public class InMemorySkillDictionary : ISkillDictionary
 {
     private readonly List<SkillDefinition> _skills;
 

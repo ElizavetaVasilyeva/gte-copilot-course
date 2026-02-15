@@ -1,5 +1,6 @@
 using MediatR;
 using SkillExtraction.Application.Commands.Auth.Common;
+using SkillExtraction.Application.Exceptions;
 using SkillExtraction.Application.Interfaces;
 using SkillExtraction.Domain.Entities;
 
@@ -19,17 +20,23 @@ public class SignUpCommandHandler : IRequestHandler<SignUpCommand, AuthTokenDto>
         IPasswordHasher passwordHasher,
         ITokenService tokenService)
     {
-        _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
-        _tokenService = tokenService;
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+        _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
     }
 
+    /// <summary>
+    /// Handles the sign-up command to create a new user account.
+    /// </summary>
+    /// <param name="request">The sign-up command containing username and password</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>An authentication token for the newly created user</returns>
     public async Task<AuthTokenDto> Handle(SignUpCommand request, CancellationToken cancellationToken)
     {
         // Check if username already exists
-        if (await _userRepository.ExistsAsync(request.Username, cancellationToken))
+        if (await _userRepository.ExistsAsync(request.Username, cancellationToken).ConfigureAwait(false))
         {
-            throw new InvalidOperationException($"Username '{request.Username}' is already taken.");
+            throw new UserAlreadyExistsException(request.Username);
         }
 
         // Hash password
@@ -39,7 +46,7 @@ public class SignUpCommandHandler : IRequestHandler<SignUpCommand, AuthTokenDto>
         var user = new User(request.Username, passwordHash);
 
         // Save to repository
-        await _userRepository.AddAsync(user, cancellationToken);
+        await _userRepository.AddAsync(user, cancellationToken).ConfigureAwait(false);
 
         // Generate JWT token
         var token = _tokenService.GenerateToken(user.Id, user.Username);

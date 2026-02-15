@@ -5,6 +5,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using SkillExtraction.Api.Models;
 using SkillExtraction.Application.Commands.Skills.ExtractSkills;
 using SkillExtraction.Application.Commands.Skills.ExportSkills;
+using SkillExtraction.Application.Queries;
 
 namespace SkillExtraction.Api.Controllers;
 
@@ -17,12 +18,10 @@ namespace SkillExtraction.Api.Controllers;
 public class SkillsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<SkillsController> _logger;
 
-    public SkillsController(IMediator mediator, ILogger<SkillsController> logger)
+    public SkillsController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     /// <summary>
@@ -38,43 +37,30 @@ public class SkillsController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> ExtractSkills([FromForm] ExtractSkillsRequest request)
     {
-        try
+        await using var cvStream = request.CvFile.OpenReadStream();
+        Stream? ifuStream = null;
+        
+        if (request.IfuFile != null)
         {
-            await using var cvStream = request.CvFile.OpenReadStream();
-            Stream? ifuStream = null;
-            
-            if (request.IfuFile != null)
-            {
-                ifuStream = request.IfuFile.OpenReadStream();
-            }
-
-            var command = new ExtractSkillsCommand
-            {
-                CvFileStream = cvStream,
-                CvFileName = request.CvFile.FileName,
-                IfuFileStream = ifuStream,
-                IfuFileName = request.IfuFile?.FileName
-            };
-
-            var result = await _mediator.Send(command);
-
-            if (ifuStream != null)
-            {
-                await ifuStream.DisposeAsync();
-            }
-
-            return Ok(result);
+            ifuStream = request.IfuFile.OpenReadStream();
         }
-        catch (FluentValidation.ValidationException ex)
+
+        var command = new ExtractSkillsCommand
         {
-            _logger.LogWarning(ex, "Validation failed for extract skills request");
-            return BadRequest(new { errors = ex.Errors.Select(e => e.ErrorMessage) });
-        }
-        catch (Exception ex)
+            CvFileStream = cvStream,
+            CvFileName = request.CvFile.FileName,
+            IfuFileStream = ifuStream,
+            IfuFileName = request.IfuFile?.FileName
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (ifuStream != null)
         {
-            _logger.LogError(ex, "Error extracting skills from documents");
-            return BadRequest(new { error = "Failed to extract skills from documents." });
+            await ifuStream.DisposeAsync();
         }
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -90,22 +76,24 @@ public class SkillsController : ControllerBase
     [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
     public async Task<IActionResult> ExportSkills([FromBody] ExportSkillsRequest request)
     {
-        try
-        {
-            var command = new ExportSkillsCommand(request.Skills);
-            var result = await _mediator.Send(command);
+        var command = new ExportSkillsCommand(request.Skills);
+        var result = await _mediator.Send(command);
 
-            return File(result.FileContents, result.ContentType, result.FileName);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            _logger.LogWarning(ex, "Validation failed for export skills request");
-            return BadRequest(new { errors = ex.Errors.Select(e => e.ErrorMessage) });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error exporting skills to Excel");
-            return BadRequest(new { error = "Failed to export skills to Excel." });
-        }
+        return File(result.FileContents, result.ContentType, result.FileName);
+    }
+
+    /// <summary>
+    /// Gets the complete skill dictionary.
+    /// </summary>
+    /// <returns>List of all skills in the dictionary</returns>
+    [HttpGet("dictionary")]
+    [SwaggerOperation(Summary = "Get skill dictionary", Description = "Retrieves the complete list of skills in the dictionary with their categories and aliases")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Skill dictionary retrieved successfully")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    public async Task<IActionResult> GetSkillDictionary()
+    {
+        var query = new GetSkillDictionaryQuery();
+        var result = await _mediator.Send(query);
+        return Ok(result);
     }
 }

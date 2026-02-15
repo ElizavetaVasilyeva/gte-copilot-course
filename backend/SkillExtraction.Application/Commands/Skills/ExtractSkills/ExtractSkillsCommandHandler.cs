@@ -19,11 +19,17 @@ public class ExtractSkillsCommandHandler : IRequestHandler<ExtractSkillsCommand,
         ISkillExtractor skillExtractor,
         ILogger<ExtractSkillsCommandHandler> logger)
     {
-        _textExtractor = textExtractor;
-        _skillExtractor = skillExtractor;
-        _logger = logger;
+        _textExtractor = textExtractor ?? throw new ArgumentNullException(nameof(textExtractor));
+        _skillExtractor = skillExtractor ?? throw new ArgumentNullException(nameof(skillExtractor));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Handles the skill extraction command by extracting text from documents and matching skills.
+    /// </summary>
+    /// <param name="request">The command containing CV and optional IFU file streams</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Extracted skills with metadata</returns>
     public async Task<ExtractSkillsDto> Handle(ExtractSkillsCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Extracting skills from uploaded documents");
@@ -32,7 +38,7 @@ public class ExtractSkillsCommandHandler : IRequestHandler<ExtractSkillsCommand,
         var cvText = await _textExtractor.ExtractTextAsync(
             request.CvFileStream,
             request.CvFileName,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Extracted {Length} characters from CV", cvText.Length);
 
@@ -43,7 +49,7 @@ public class ExtractSkillsCommandHandler : IRequestHandler<ExtractSkillsCommand,
             ifuText = await _textExtractor.ExtractTextAsync(
                 request.IfuFileStream,
                 request.IfuFileName,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Extracted {Length} characters from IFU", ifuText.Length);
         }
@@ -52,7 +58,7 @@ public class ExtractSkillsCommandHandler : IRequestHandler<ExtractSkillsCommand,
         var combinedText = $"{cvText}\n\n{ifuText}".Trim();
 
         // Extract skills from combined text
-        var extractedSkills = await _skillExtractor.ExtractSkillsAsync(combinedText, cancellationToken);
+        var extractedSkills = await _skillExtractor.ExtractSkillsAsync(combinedText, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Extracted {Count} skills from documents", extractedSkills.Count());
 

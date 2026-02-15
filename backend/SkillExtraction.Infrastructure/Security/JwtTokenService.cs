@@ -1,9 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SkillExtraction.Application.Interfaces;
+using SkillExtraction.Infrastructure.Configuration;
 
 namespace SkillExtraction.Infrastructure.Security;
 
@@ -12,23 +13,26 @@ namespace SkillExtraction.Infrastructure.Security;
 /// </summary>
 public class JwtTokenService : ITokenService
 {
-    private readonly IConfiguration _configuration;
-    private readonly int _expirationInMinutes;
+    private readonly JwtSettings _jwtSettings;
 
-    public JwtTokenService(IConfiguration configuration)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JwtTokenService"/> class.
+    /// </summary>
+    /// <param name="jwtSettings">JWT configuration settings</param>
+    public JwtTokenService(IOptions<JwtSettings> jwtSettings)
     {
-        _configuration = configuration;
-        _expirationInMinutes = int.Parse(_configuration["JwtSettings:ExpirationInMinutes"] ?? "60");
+        _jwtSettings = jwtSettings?.Value ?? throw new ArgumentNullException(nameof(jwtSettings));
     }
 
+    /// <summary>
+    /// Generates a JWT token for the specified user.
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <param name="username">The username</param>
+    /// <returns>A signed JWT token string</returns>
     public string GenerateToken(Guid userId, string username)
     {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-        var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-        var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -41,18 +45,22 @@ public class JwtTokenService : ITokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_expirationInMinutes),
+            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
             signingCredentials: credentials
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <summary>
+    /// Gets the token expiration duration in seconds.
+    /// </summary>
+    /// <returns>Expiration duration in seconds</returns>
     public int GetTokenExpirationInSeconds()
     {
-        return _expirationInMinutes * 60;
+        return _jwtSettings.ExpirationInMinutes * 60;
     }
 }

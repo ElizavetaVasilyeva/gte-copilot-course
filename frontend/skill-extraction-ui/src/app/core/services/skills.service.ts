@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ExtractedSkill, ExtractSkillsResponse } from '../models/skill.models';
+import { ExtractedSkill, ExtractSkillsResponse, SkillDictionaryResponse } from '../models/skill.models';
 
 @Injectable({
   providedIn: 'root'
@@ -39,6 +39,12 @@ export class SkillsService {
       `${environment.apiBaseUrl}/skills/export`,
       payload,
       { responseType: 'blob' }
+    );
+  }
+
+  getSkillDictionary(): Observable<SkillDictionaryResponse> {
+    return this.http.get<SkillDictionaryResponse>(
+      `${environment.apiBaseUrl}/skills/dictionary`
     );
   }
 }

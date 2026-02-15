@@ -26,14 +26,9 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'admin',
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'dictionary',
-        loadComponent: () => import('./features/admin/dictionary/dictionary.component').then(m => m.DictionaryComponent)
-      }
-    ]
+    path: 'dictionary',
+    loadComponent: () => import('./features/admin/dictionary/dictionary.component').then(m => m.DictionaryComponent),
+    canActivate: [authGuard]
   }
 ];
 

@@ -1,13 +1,20 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SkillExtraction.Api.Filters;
 using SkillExtraction.Application;
 using SkillExtraction.Infrastructure;
+using SkillExtraction.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Add global exception filter for consistent error handling
+    options.Filters.Add<GlobalExceptionFilter>();
+});
 
 // Add Application and Infrastructure layers
 builder.Services.AddApplication();
@@ -69,14 +76,31 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Initialize database (apply migrations if using SQLite)
+var databaseProvider = builder.Configuration["DatabaseSettings:Provider"];
+if (!string.IsNullOrEmpty(databaseProvider) && 
+    databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetService<ApplicationDbContext>();
+    if (dbContext != null)
+    {
+        // Apply any pending migrations
+        dbContext.Database.Migrate();
+    }
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-// app.UseHttpsRedirection(); // Commented out for local development on HTTP
+else
+{
+    // Enable HTTPS redirection in production
+    app.UseHttpsRedirection();
+}
 
 app.UseCors();
 

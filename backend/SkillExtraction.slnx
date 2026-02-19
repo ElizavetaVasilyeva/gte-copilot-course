@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="SkillExtraction.Api/SkillExtraction.Api.csproj" />
+  <Project Path="SkillExtraction.Application/SkillExtraction.Application.csproj" />
+  <Project Path="SkillExtraction.Domain/SkillExtraction.Domain.csproj" />
+  <Project Path="SkillExtraction.Infrastructure/SkillExtraction.Infrastructure.csproj" />
+  <Project Path="SkillExtraction.Tests.Integration/SkillExtraction.Tests.Integration.csproj" />
+  <Project Path="SkillExtraction.Tests.Unit/SkillExtraction.Tests.Unit.csproj" />
+</Solution>

@@ -6,11 +6,11 @@ Angular frontend for the Skill Extraction Tool.
 
 - Node.js 22.12+ or 20.19+
 - npm 8.0+
-- Angular CLI 18.2+
+- Angular CLI 19.2+
 
 ## Setup
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.21.
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.21 and upgraded to 19.2.18.
 
 ### Install Dependencies
 

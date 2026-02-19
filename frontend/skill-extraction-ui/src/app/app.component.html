@@ -1,0 +1,20 @@
+@if (currentUser$ | async; as username) {
+  <header class="app-header">
+    <div class="header-content">
+      <h1 class="app-title">Skill Extraction Tool</h1>
+      <nav class="app-nav">
+        <a routerLink="/upload" routerLinkActive="active" class="nav-link">Upload</a>
+        <a routerLink="/skills" routerLinkActive="active" class="nav-link">Review</a>
+        <a routerLink="/dictionary" routerLinkActive="active" class="nav-link">Dictionary</a>
+      </nav>
+      <div class="user-section">
+        <span class="username">{{ username }}</span>
+        <button (click)="onLogout()" class="logout-button">Logout</button>
+      </div>
+    </div>
+  </header>
+}
+
+<main class="app-content">
+  <router-outlet />
+</main>
